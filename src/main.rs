@@ -9,6 +9,7 @@ use amethyst::{
     utils::application_root_dir,
 };
 
+mod entities;
 mod resources;
 mod state;
 

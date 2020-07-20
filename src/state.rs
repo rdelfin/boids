@@ -1,12 +1,11 @@
-use crate::resources::{SpriteCache, SpriteKey};
+use crate::{entities, resources};
 use amethyst::{
     core::transform::Transform,
     input::{get_key, is_close_requested, is_key_down, VirtualKeyCode},
     prelude::*,
-    renderer::{Camera, SpriteRender, Transparent},
+    renderer::Camera,
     window::ScreenDimensions,
 };
-use anyhow::{anyhow, Result};
 use nalgebra::Vector3;
 
 use log::info;
@@ -31,24 +30,7 @@ impl SimpleState for MyState {
         // Load our sprites and display them
         load_sprites(world);
 
-        let boid_handle = {
-            let sprite_cache = world
-                .try_fetch::<SpriteCache>()
-                .ok_or_else(|| anyhow!("Failed to fetch the sprite cache while crating player."))
-                .unwrap();
-
-            sprite_cache.fetch(SpriteKey::Boid).unwrap().clone()
-        };
-
-        world
-            .create_entity()
-            .with(SpriteRender {
-                sprite_sheet: boid_handle,
-                sprite_number: 0,
-            })
-            .with(Transform::default())
-            .with(Transparent)
-            .build();
+        entities::boids::new_boid(world).unwrap();
     }
 
     fn handle_event(
@@ -92,7 +74,7 @@ fn init_camera(world: &mut World, dimensions: &ScreenDimensions) {
 }
 
 fn load_sprites(world: &mut World) {
-    let mut sprite_cache = SpriteCache::new();
-    sprite_cache.load(SpriteKey::Boid, world);
+    let mut sprite_cache = resources::SpriteCache::new();
+    sprite_cache.load(resources::SpriteKey::Boid, world);
     world.insert(sprite_cache);
 }
