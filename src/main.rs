@@ -34,7 +34,8 @@ fn main() -> amethyst::Result<()> {
                 )
                 .with_plugin(RenderFlat2D::default()),
         )?
-        .with(systems::PhysicsSystem, "physics_system", &[])
+        .with(systems::BoidSystem, "boid_system", &[])
+        .with(systems::PhysicsSystem, "physics_system", &["boid_system"])
         .with(
             systems::PositionSystem,
             "position_system",

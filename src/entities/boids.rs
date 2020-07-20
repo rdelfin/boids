@@ -1,5 +1,5 @@
 use crate::{
-    components::{Position, Velocity},
+    components::{BoidData, Position, Velocity},
     resources::{SpriteCache, SpriteKey},
 };
 use amethyst::{
@@ -27,8 +27,16 @@ pub fn new_boid(world: &mut World) -> Result<Entity> {
             sprite_number: 0,
         })
         .with(Position(Vector2::new(0., 0.)))
-        .with(Velocity(Vector2::new(5., 0.)))
+        .with(Velocity(Vector2::new(0., 0.)))
         .with(Transform::default())
         .with(Transparent)
+        .with(BoidData {
+            separation_weight: 1.0,
+            alignment_weight: 1.0,
+            cohesion_weight: 1.0,
+            view_radius: 64.,
+            fov_angle: 15. / 8. * std::f32::consts::PI,
+            speed: 100.,
+        })
         .build())
 }

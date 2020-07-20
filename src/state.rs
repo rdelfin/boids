@@ -64,7 +64,7 @@ fn init_camera(world: &mut World, dimensions: &ScreenDimensions) {
     // the entire screen
     let mut transform = Transform::default();
     transform.set_translation_xyz(0., 0., 1.);
-    transform.set_scale(Vector3::new(0.2, 0.2, 1.));
+    transform.set_scale(Vector3::new(1., 1., 1.));
 
     world
         .create_entity()
