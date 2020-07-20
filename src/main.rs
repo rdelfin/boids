@@ -9,6 +9,7 @@ use amethyst::{
     utils::application_root_dir,
 };
 
+mod resources;
 mod state;
 
 fn main() -> amethyst::Result<()> {

@@ -6,7 +6,10 @@ edition = "2018"
 
 [dependencies]
 amethyst = "0.15.0"
+anyhow = "1.0.31"
 log = { version = "0.4.8", features = ["serde"] }
+nalgebra = "0.19.0"
+tuple-map = "0.4.0"
 
 [features]
 default = ["vulkan"]
