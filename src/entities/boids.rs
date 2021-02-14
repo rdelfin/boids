@@ -27,7 +27,7 @@ pub fn new_boid(world: &mut World) -> Result<Entity> {
             sprite_number: 0,
         })
         .with(Position(Vector2::new(0., 0.)))
-        .with(Velocity(Vector2::new(0., 0.)))
+        .with(Velocity(Vector2::new(100., 0.)))
         .with(Transform::default())
         .with(Transparent)
         .with(BoidData {
