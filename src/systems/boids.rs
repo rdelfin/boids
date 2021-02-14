@@ -39,7 +39,7 @@ impl<'s> System<'s> for BoidSystem {
             let weighted_vec = boid_data.separation_weight * v_sep
                 + boid_data.alignment_weight * v_align
                 + boid_data.cohesion_weight * v_coh;
-            if weighted_vec.norm() != 0.0 {
+            if !weighted_vec.x.is_nan() && !weighted_vec.y.is_nan() && weighted_vec.norm() != 0.0 {
                 velocity.0 += weighted_vec.normalize() * boid_data.speed;
             }
         }

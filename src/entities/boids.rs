@@ -11,7 +11,11 @@ use amethyst::{
 use anyhow::{anyhow, Result};
 use nalgebra::Vector2;
 
-pub fn new_boid(world: &mut World) -> Result<Entity> {
+pub fn new_boid(
+    world: &mut World,
+    start_pos: Vector2<f32>,
+    start_vel: Vector2<f32>,
+) -> Result<Entity> {
     let boid_handle = {
         let sprite_cache = world
             .try_fetch::<SpriteCache>()
@@ -26,8 +30,8 @@ pub fn new_boid(world: &mut World) -> Result<Entity> {
             sprite_sheet: boid_handle,
             sprite_number: 0,
         })
-        .with(Position(Vector2::new(0., 0.)))
-        .with(Velocity(Vector2::new(100., 0.)))
+        .with(Position(start_pos))
+        .with(Velocity(start_vel))
         .with(Transform::default())
         .with(Transparent)
         .with(BoidData {
@@ -36,7 +40,7 @@ pub fn new_boid(world: &mut World) -> Result<Entity> {
             cohesion_weight: 1.0,
             view_radius: 64.,
             fov_angle: 15. / 8. * std::f32::consts::PI,
-            speed: 100.,
+            speed: start_vel.norm(),
         })
         .build())
 }
