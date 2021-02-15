@@ -47,6 +47,11 @@ fn main() -> amethyst::Result<()> {
             systems::PositionSystem,
             "position_system",
             &["physics_system"],
+        )
+        .with(
+            systems::MouseInputSystem::default(),
+            "mouse_input_system",
+            &["position_system"],
         );
 
     let mut game = Application::new(resources, state::MyState, game_data)?;

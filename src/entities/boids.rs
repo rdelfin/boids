@@ -4,7 +4,7 @@ use crate::{
 };
 use amethyst::{
     core::transform::Transform,
-    ecs::Entity,
+    ecs::{Entities, Entity, LazyUpdate, Read},
     prelude::*,
     renderer::{SpriteRender, Transparent},
 };
@@ -38,7 +38,37 @@ pub fn new_boid(
             separation_weight: 1.0,
             alignment_weight: 1.0,
             cohesion_weight: 1.0,
-            view_radius: 64.,
+            view_radius: 150.,
+            fov_angle: 15. / 8. * std::f32::consts::PI,
+            speed: start_vel.norm(),
+        })
+        .build())
+}
+
+pub fn fill_boid<'s>(
+    entities: &Entities<'s>,
+    sprite_cache: &Read<SpriteCache>,
+    updater: &LazyUpdate,
+    start_pos: Vector2<f32>,
+    start_vel: Vector2<f32>,
+) -> Result<Entity> {
+    let boid_handle = sprite_cache.fetch(SpriteKey::Boid)?.clone();
+
+    Ok(updater
+        .create_entity(entities)
+        .with(SpriteRender {
+            sprite_sheet: boid_handle,
+            sprite_number: 0,
+        })
+        .with(Position(start_pos))
+        .with(Velocity(start_vel))
+        .with(Transform::default())
+        .with(Transparent)
+        .with(BoidData {
+            separation_weight: 1.0,
+            alignment_weight: 1.0,
+            cohesion_weight: 1.0,
+            view_radius: 150.,
             fov_angle: 15. / 8. * std::f32::consts::PI,
             speed: start_vel.norm(),
         })

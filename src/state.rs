@@ -29,8 +29,6 @@ impl SimpleState for MyState {
 
         // Load our sprites and display them
         load_sprites(world);
-
-        generate_boids(world);
     }
 
     fn handle_event(
@@ -56,18 +54,6 @@ impl SimpleState for MyState {
 
         // Keep going
         Trans::None
-    }
-}
-
-fn generate_boids(world: &mut World) {
-    for i in 0..20 {
-        let angle = std::f32::consts::PI * (i as f32) / 20.0;
-        entities::boids::new_boid(
-            world,
-            Vector2::new(0., 0.),
-            100. * Vector2::new(angle.cos(), angle.sin()),
-        )
-        .unwrap();
     }
 }
 
