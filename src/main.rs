@@ -1,5 +1,6 @@
 use amethyst::{
     core::transform::TransformBundle,
+    input::{InputBundle, StringBindings},
     prelude::*,
     renderer::{
         plugins::{RenderFlat2D, RenderToWindow},
@@ -11,6 +12,7 @@ use amethyst::{
 
 mod components;
 mod entities;
+mod input;
 mod resources;
 mod state;
 mod systems;
@@ -23,6 +25,7 @@ fn main() -> amethyst::Result<()> {
     let resources = app_root.join("resources");
     let config = app_root.join("config");
     let display_config = config.join("display.ron");
+    let key_bindings_path = app_root.join("input.ron");
 
     let game_data = GameDataBuilder::default()
         .with_bundle(TransformBundle::new())?
@@ -33,6 +36,10 @@ fn main() -> amethyst::Result<()> {
                         .with_clear([0.34, 0.36, 0.52, 1.0]),
                 )
                 .with_plugin(RenderFlat2D::default()),
+        )?
+        .with_bundle(
+            InputBundle::<input::ControlBindingTypes>::new()
+                .with_bindings_from_file(&key_bindings_path)?,
         )?
         .with(systems::BoidSystem, "boid_system", &[])
         .with(systems::PhysicsSystem, "physics_system", &["boid_system"])
