@@ -12,10 +12,6 @@ use amethyst::{
     window::ScreenDimensions,
 };
 use nalgebra::{Point2, Vector2};
-use rand::{
-    distributions::{Distribution, Uniform},
-    thread_rng,
-};
 
 #[derive(SystemDesc, Default)]
 pub struct MouseInputSystem {
@@ -68,16 +64,12 @@ impl<'s> System<'s> for MouseInputSystem {
             let mouse_pos = ray.at_distance(distance);
 
             if !place_pressed && self.place_prev_pressed {
-                let mut rng = thread_rng();
-                let distr = Uniform::new(0., 2. * std::f32::consts::PI);
-                let angle = distr.sample(&mut rng);
-
                 fill_boid(
                     &entities,
                     &sprite_cache,
                     &lazy_update,
                     Vector2::new(mouse_pos.x, mouse_pos.y),
-                    100. * Vector2::new(angle.cos(), angle.sin()),
+                    200.,
                 )
                 .unwrap();
             }

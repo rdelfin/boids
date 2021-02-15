@@ -5,6 +5,10 @@ use amethyst::{
     ecs::{Entities, Entity, ReadStorage, System, WriteStorage},
 };
 use nalgebra::Vector2;
+use rand::{
+    distributions::{Distribution, Uniform},
+    thread_rng,
+};
 
 #[derive(SystemDesc)]
 pub struct BoidSystem;
@@ -30,23 +34,38 @@ impl<'s> System<'s> for BoidSystem {
             let neighbour_boids =
                 self.neighbour_boids(entity, position.0, velocity.0, &boid_data, &all_boids);
 
-            let (v_sep, v_align, v_coh) = (
+            let (v_sep, v_align, v_coh, v_noise) = (
                 self.separation(boid_data, position.0, velocity.0, &neighbour_boids),
                 self.alignment(boid_data, position.0, velocity.0, &neighbour_boids),
                 self.cohesion(boid_data, position.0, velocity.0, &neighbour_boids),
+                self.noise(boid_data),
             );
 
             let weighted_vec = boid_data.separation_weight * v_sep
                 + boid_data.alignment_weight * v_align
-                + boid_data.cohesion_weight * v_coh;
+                + boid_data.cohesion_weight * v_coh
+                + boid_data.noise_weight * v_noise;
             if !weighted_vec.x.is_nan() && !weighted_vec.y.is_nan() && weighted_vec.norm() != 0.0 {
-                velocity.0 += weighted_vec.normalize() * boid_data.speed;
+                velocity.0 = if weighted_vec.norm() > boid_data.max_speed {
+                    weighted_vec.normalize() * boid_data.max_speed
+                } else {
+                    weighted_vec
+                };
             }
         }
     }
 }
 
 impl BoidSystem {
+    fn noise(&self, boid_data: &BoidData) -> Vector2<f32> {
+        let mut rng = thread_rng();
+        let angle_dist = Uniform::new(0., 2. * std::f32::consts::PI);
+        let speed_dist = Uniform::new(0., 1.);
+        let angle = angle_dist.sample(&mut rng);
+        let speed = speed_dist.sample(&mut rng);
+        boid_data.max_speed * speed * Vector2::new(angle.cos(), angle.sin())
+    }
+
     fn neighbour_boids(
         &self,
         entity: Entity,
@@ -77,7 +96,7 @@ impl BoidSystem {
 
         neighbours
             .iter()
-            .map(|(_, p)| position - p)
+            .map(|(_, p)| (position - p).normalize() / (position - p).norm())
             .fold(Vector2::new(0., 0.), |prev, pos| prev + pos)
             .normalize()
     }
@@ -85,7 +104,7 @@ impl BoidSystem {
     fn alignment(
         &self,
         _boid_data: &BoidData,
-        _position: Vector2<f32>,
+        position: Vector2<f32>,
         velocity: Vector2<f32>,
         neighbours: &Vec<(Vector2<f32>, Vector2<f32>)>,
     ) -> Vector2<f32> {
@@ -95,7 +114,7 @@ impl BoidSystem {
 
         let avg_direction = neighbours
             .iter()
-            .map(|(_, v)| v.normalize())
+            .map(|(p, v)| v.normalize() / (position - p).norm())
             .fold(Vector2::new(0.0, 0.0), |prev, curr| prev + curr)
             .normalize();
         avg_direction - velocity
