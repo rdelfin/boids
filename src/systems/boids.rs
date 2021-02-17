@@ -39,7 +39,6 @@ impl<'s> System<'s> for BoidSystem {
                     &self.neighbour_boids(
                         entity,
                         position.0,
-                        velocity.0,
                         boid_data.separation_radius,
                         &all_boids,
                     ),
@@ -51,7 +50,6 @@ impl<'s> System<'s> for BoidSystem {
                     &self.neighbour_boids(
                         entity,
                         position.0,
-                        velocity.0,
                         boid_data.alignment_radius,
                         &all_boids,
                     ),
@@ -63,7 +61,6 @@ impl<'s> System<'s> for BoidSystem {
                     &self.neighbour_boids(
                         entity,
                         position.0,
-                        velocity.0,
                         boid_data.cohesion_radius,
                         &all_boids,
                     ),
@@ -101,7 +98,6 @@ impl BoidSystem {
         &self,
         entity: Entity,
         position: Vector2<f32>,
-        velocity: Vector2<f32>,
         radius: f32,
         all_boids: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
     ) -> Vec<(Vector2<f32>, Vector2<f32>)> {
