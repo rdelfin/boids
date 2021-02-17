@@ -31,13 +31,46 @@ impl<'s> System<'s> for BoidSystem {
         for (boid_data, position, velocity, entity) in
             (&boid_datas, &positions, &mut velocities, &entities).join()
         {
-            let neighbour_boids =
-                self.neighbour_boids(entity, position.0, velocity.0, &boid_data, &all_boids);
-
             let (v_sep, v_align, v_coh, v_noise) = (
-                self.separation(boid_data, position.0, velocity.0, &neighbour_boids),
-                self.alignment(boid_data, position.0, velocity.0, &neighbour_boids),
-                self.cohesion(boid_data, position.0, velocity.0, &neighbour_boids),
+                self.separation(
+                    boid_data,
+                    position.0,
+                    velocity.0,
+                    &self.neighbour_boids(
+                        entity,
+                        position.0,
+                        velocity.0,
+                        boid_data.separation_radius,
+                        boid_data.separation_fov,
+                        &all_boids,
+                    ),
+                ),
+                self.alignment(
+                    boid_data,
+                    position.0,
+                    velocity.0,
+                    &self.neighbour_boids(
+                        entity,
+                        position.0,
+                        velocity.0,
+                        boid_data.alignment_radius,
+                        boid_data.alignment_fov,
+                        &all_boids,
+                    ),
+                ),
+                self.cohesion(
+                    boid_data,
+                    position.0,
+                    velocity.0,
+                    &self.neighbour_boids(
+                        entity,
+                        position.0,
+                        velocity.0,
+                        boid_data.cohesion_radius,
+                        boid_data.cohesion_radius,
+                        &all_boids,
+                    ),
+                ),
                 self.noise(boid_data),
             );
 
@@ -46,11 +79,7 @@ impl<'s> System<'s> for BoidSystem {
                 + boid_data.cohesion_weight * v_coh
                 + boid_data.noise_weight * v_noise;
             if !weighted_vec.x.is_nan() && !weighted_vec.y.is_nan() && weighted_vec.norm() != 0.0 {
-                velocity.0 = if weighted_vec.norm() > boid_data.max_speed {
-                    weighted_vec.normalize() * boid_data.max_speed
-                } else {
-                    weighted_vec
-                };
+                velocity.0 += weighted_vec;
             }
         }
     }
@@ -71,14 +100,15 @@ impl BoidSystem {
         entity: Entity,
         position: Vector2<f32>,
         velocity: Vector2<f32>,
-        boid_data: &BoidData,
+        radius: f32,
+        fov: f32,
         all_boids: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
     ) -> Vec<(Vector2<f32>, Vector2<f32>)> {
         all_boids
             .iter()
             .filter(|(e, _, _)| entity != *e)
-            .filter(|(_, p, _)| (position - p).norm() < boid_data.view_radius)
-            .filter(|(_, _, v)| v.angle(&velocity).abs() < boid_data.fov_angle / 2.0)
+            .filter(|(_, p, _)| (position - p).norm() < radius)
+            .filter(|(_, _, v)| v.angle(&velocity).abs() < fov / 2.0)
             .map(|(_, p, v)| (*p, *v))
             .collect()
     }
@@ -94,17 +124,18 @@ impl BoidSystem {
             return Vector2::new(0.0, 0.0);
         }
 
-        neighbours
+        let avg_position = neighbours
             .iter()
-            .map(|(_, p)| (position - p).normalize() / (position - p).norm())
+            .map(|(_, p)| position - p)
             .fold(Vector2::new(0., 0.), |prev, pos| prev + pos)
-            .normalize()
+            / (neighbours.len() as f32);
+        position - avg_position
     }
 
     fn alignment(
         &self,
         _boid_data: &BoidData,
-        position: Vector2<f32>,
+        _position: Vector2<f32>,
         velocity: Vector2<f32>,
         neighbours: &Vec<(Vector2<f32>, Vector2<f32>)>,
     ) -> Vector2<f32> {
@@ -114,9 +145,8 @@ impl BoidSystem {
 
         let avg_direction = neighbours
             .iter()
-            .map(|(p, v)| v.normalize() / (position - p).norm())
-            .fold(Vector2::new(0.0, 0.0), |prev, curr| prev + curr)
-            .normalize();
+            .fold(Vector2::new(0.0, 0.0), |prev, (_, curr)| prev + curr)
+            / neighbours.len() as f32;
         avg_direction - velocity
     }
 

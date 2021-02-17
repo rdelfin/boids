@@ -69,7 +69,6 @@ impl<'s> System<'s> for MouseInputSystem {
                     &sprite_cache,
                     &lazy_update,
                     Vector2::new(mouse_pos.x, mouse_pos.y),
-                    200.,
                 )
                 .unwrap();
             }
