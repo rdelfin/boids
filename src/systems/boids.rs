@@ -81,6 +81,11 @@ impl<'s> System<'s> for BoidSystem {
             if !weighted_vec.x.is_nan() && !weighted_vec.y.is_nan() && weighted_vec.norm() != 0.0 {
                 velocity.0 += weighted_vec;
             }
+
+            // Cap velocity
+            if velocity.0.norm() > boid_data.max_speed {
+                velocity.0 = velocity.0.normalize() * boid_data.max_speed;
+            }
         }
     }
 }
