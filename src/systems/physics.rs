@@ -5,6 +5,7 @@ use amethyst::{
     ecs::prelude::*,
     ecs::{Read, ReadStorage, System, WriteStorage},
 };
+use nalgebra::Vector2;
 
 #[derive(SystemDesc)]
 pub struct PhysicsSystem;
@@ -28,15 +29,23 @@ impl<'s> System<'s> for PhysicsSystem {
 pub struct PositionSystem;
 
 impl<'s> System<'s> for PositionSystem {
-    type SystemData = (ReadStorage<'s, Position>, WriteStorage<'s, Transform>);
+    type SystemData = (
+        ReadStorage<'s, Position>,
+        ReadStorage<'s, Velocity>,
+        WriteStorage<'s, Transform>,
+    );
 
-    fn run(&mut self, (positions, mut transforms): Self::SystemData) {
+    fn run(&mut self, (positions, velocities, mut transforms): Self::SystemData) {
         for (position, transform) in (&positions, &mut transforms).join() {
             transform.set_translation_xyz(
                 position.0.x.round(),
                 position.0.y.round(),
                 transform.translation().z,
             );
+        }
+
+        for (velocity, transform) in (&velocities, &mut transforms).join() {
+            transform.set_rotation_2d(velocity.0.y.atan2(velocity.0.x));
         }
     }
 }
