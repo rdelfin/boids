@@ -10,8 +10,5 @@ pub struct BoidData {
     pub separation_radius: f32,
     pub alignment_radius: f32,
     pub cohesion_radius: f32,
-    pub separation_fov: f32,
-    pub alignment_fov: f32,
-    pub cohesion_fov: f32,
     pub max_speed: f32,
 }

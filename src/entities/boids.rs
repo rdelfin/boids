@@ -42,9 +42,6 @@ pub fn fill_boid<'s>(
             separation_radius: 75.,
             alignment_radius: 150.,
             cohesion_radius: 150.,
-            separation_fov: 2. * std::f32::consts::PI,
-            alignment_fov: 2. * std::f32::consts::PI,
-            cohesion_fov: 2. * std::f32::consts::PI,
             max_speed: MAX_VEL,
         })
         .build())

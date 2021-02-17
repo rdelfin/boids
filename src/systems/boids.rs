@@ -41,7 +41,6 @@ impl<'s> System<'s> for BoidSystem {
                         position.0,
                         velocity.0,
                         boid_data.separation_radius,
-                        boid_data.separation_fov,
                         &all_boids,
                     ),
                 ),
@@ -54,7 +53,6 @@ impl<'s> System<'s> for BoidSystem {
                         position.0,
                         velocity.0,
                         boid_data.alignment_radius,
-                        boid_data.alignment_fov,
                         &all_boids,
                     ),
                 ),
@@ -66,7 +64,6 @@ impl<'s> System<'s> for BoidSystem {
                         entity,
                         position.0,
                         velocity.0,
-                        boid_data.cohesion_radius,
                         boid_data.cohesion_radius,
                         &all_boids,
                     ),
@@ -106,14 +103,12 @@ impl BoidSystem {
         position: Vector2<f32>,
         velocity: Vector2<f32>,
         radius: f32,
-        fov: f32,
         all_boids: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
     ) -> Vec<(Vector2<f32>, Vector2<f32>)> {
         all_boids
             .iter()
             .filter(|(e, _, _)| entity != *e)
             .filter(|(_, p, _)| (position - p).norm() < radius)
-            .filter(|(_, _, v)| v.angle(&velocity).abs() < fov / 2.0)
             .map(|(_, p, v)| (*p, *v))
             .collect()
     }
