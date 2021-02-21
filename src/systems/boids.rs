@@ -28,59 +28,62 @@ impl<'s> System<'s> for BoidSystem {
             .map(|(_, p, v, e)| (e, p.0, v.0))
             .collect::<Vec<_>>();
 
-        for (boid_data, position, velocity, entity) in
-            (&boid_datas, &positions, &mut velocities, &entities).join()
-        {
-            let (v_sep, v_align, v_coh, v_noise) = (
-                self.separation(
-                    boid_data,
-                    position.0,
-                    velocity.0,
-                    &self.neighbour_boids(
-                        entity,
+        (&boid_datas, &positions, &mut velocities, &entities)
+            .par_join()
+            .for_each(|(boid_data, position, velocity, entity)| {
+                let (v_sep, v_align, v_coh, v_noise) = (
+                    self.separation(
+                        boid_data,
                         position.0,
-                        boid_data.separation_radius,
-                        &all_boids,
+                        velocity.0,
+                        &self.neighbour_boids(
+                            entity,
+                            position.0,
+                            boid_data.separation_radius,
+                            &all_boids,
+                        ),
                     ),
-                ),
-                self.alignment(
-                    boid_data,
-                    position.0,
-                    velocity.0,
-                    &self.neighbour_boids(
-                        entity,
+                    self.alignment(
+                        boid_data,
                         position.0,
-                        boid_data.alignment_radius,
-                        &all_boids,
+                        velocity.0,
+                        &self.neighbour_boids(
+                            entity,
+                            position.0,
+                            boid_data.alignment_radius,
+                            &all_boids,
+                        ),
                     ),
-                ),
-                self.cohesion(
-                    boid_data,
-                    position.0,
-                    velocity.0,
-                    &self.neighbour_boids(
-                        entity,
+                    self.cohesion(
+                        boid_data,
                         position.0,
-                        boid_data.cohesion_radius,
-                        &all_boids,
+                        velocity.0,
+                        &self.neighbour_boids(
+                            entity,
+                            position.0,
+                            boid_data.cohesion_radius,
+                            &all_boids,
+                        ),
                     ),
-                ),
-                self.noise(boid_data),
-            );
+                    self.noise(boid_data),
+                );
 
-            let weighted_vec = boid_data.separation_weight * v_sep
-                + boid_data.alignment_weight * v_align
-                + boid_data.cohesion_weight * v_coh
-                + boid_data.noise_weight * v_noise;
-            if !weighted_vec.x.is_nan() && !weighted_vec.y.is_nan() && weighted_vec.norm() != 0.0 {
-                velocity.0 += weighted_vec;
-            }
+                let weighted_vec = boid_data.separation_weight * v_sep
+                    + boid_data.alignment_weight * v_align
+                    + boid_data.cohesion_weight * v_coh
+                    + boid_data.noise_weight * v_noise;
+                if !weighted_vec.x.is_nan()
+                    && !weighted_vec.y.is_nan()
+                    && weighted_vec.norm() != 0.0
+                {
+                    velocity.0 += weighted_vec;
+                }
 
-            // Cap velocity
-            if velocity.0.norm() > boid_data.max_speed {
-                velocity.0 = velocity.0.normalize() * boid_data.max_speed;
-            }
-        }
+                // Cap velocity
+                if velocity.0.norm() > boid_data.max_speed {
+                    velocity.0 = velocity.0.normalize() * boid_data.max_speed;
+                }
+            });
     }
 }
 
