@@ -115,7 +115,7 @@ dependencies = [
  "amethyst_ui",
  "derivative 2.2.0",
  "fnv",
- "itertools",
+ "itertools 0.8.2",
  "log",
  "minterpolate",
  "serde",
@@ -558,6 +558,7 @@ version = "0.0.1"
 dependencies = [
  "amethyst",
  "anyhow",
+ "itertools 0.10.0",
  "log",
  "nalgebra",
  "rand 0.8.3",
@@ -1697,6 +1698,15 @@ name = "itertools"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37d572918e350e82412fe766d24b15e6682fb2ed2bbe018280caa810397cb319"
 dependencies = [
  "either",
 ]

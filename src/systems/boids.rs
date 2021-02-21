@@ -4,11 +4,13 @@ use amethyst::{
     ecs::prelude::*,
     ecs::{Entities, Entity, ReadStorage, System, WriteStorage},
 };
+use itertools::izip;
 use nalgebra::Vector2;
 use rand::{
     distributions::{Distribution, Uniform},
     thread_rng,
 };
+use std::collections::HashMap;
 
 #[derive(SystemDesc)]
 pub struct BoidSystem;
@@ -29,10 +31,12 @@ impl<'s> System<'s> for BoidSystem {
             .map(|(_, p, v, e)| (e, p.0, v.0))
             .collect::<Vec<_>>();
 
-        (&boid_datas, &positions, &mut velocities, &entities)
-            .par_join()
-            .for_each(|(boid_data, position, velocity, entity)| {
-                let (v_sep, v_align, v_coh, v_noise) = (
+        // Calculate the different vectors
+        let separation_map = (&boid_datas, &positions, &velocities, &entities)
+            .join()
+            .map(|(boid_data, position, velocity, entity)| {
+                (
+                    entity,
                     self.separation(
                         boid_data,
                         position.0,
@@ -44,6 +48,14 @@ impl<'s> System<'s> for BoidSystem {
                             &all_boids,
                         ),
                     ),
+                )
+            })
+            .collect::<Vec<_>>();
+        let alignment_map = (&boid_datas, &positions, &velocities, &entities)
+            .join()
+            .map(|(boid_data, position, velocity, entity)| {
+                (
+                    entity,
                     self.alignment(
                         boid_data,
                         position.0,
@@ -55,6 +67,14 @@ impl<'s> System<'s> for BoidSystem {
                             &all_boids,
                         ),
                     ),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        let cohesion_map = (&boid_datas, &positions, &velocities, &entities)
+            .join()
+            .map(|(boid_data, position, velocity, entity)| {
+                (
+                    entity,
                     self.cohesion(
                         boid_data,
                         position.0,
@@ -66,8 +86,18 @@ impl<'s> System<'s> for BoidSystem {
                             &all_boids,
                         ),
                     ),
-                    self.noise(boid_data),
-                );
+                )
+            })
+            .collect::<Vec<_>>();
+        let noise_map = (&boid_datas, &positions, &velocities, &entities)
+            .join()
+            .map(|(boid_data, position, velocity, entity)| (entity, self.noise(boid_data)))
+            .collect::<Vec<_>>();
+
+        izip!(separation_map, alignment_map, cohesion_map, noise_map).for_each(
+            |((entity, v_sep), (_, v_align), (_, v_coh), (_, v_noise))| {
+                let mut write_vel = velocities.get_mut(entity).unwrap();
+                let boid_data = boid_datas.get(entity).unwrap();
 
                 let weighted_vec = boid_data.separation_weight * v_sep
                     + boid_data.alignment_weight * v_align
@@ -77,14 +107,15 @@ impl<'s> System<'s> for BoidSystem {
                     && !weighted_vec.y.is_nan()
                     && weighted_vec.norm() != 0.0
                 {
-                    velocity.0 += weighted_vec;
+                    write_vel.0 += weighted_vec;
                 }
 
                 // Cap velocity
-                if velocity.0.norm() > boid_data.max_speed {
-                    velocity.0 = velocity.0.normalize() * boid_data.max_speed;
+                if write_vel.0.norm() > boid_data.max_speed {
+                    write_vel.0 = write_vel.0.normalize() * boid_data.max_speed;
                 }
-            });
+            },
+        );
     }
 }
 
