@@ -12,3 +12,10 @@ pub struct BoidData {
     pub cohesion_radius: f32,
     pub max_speed: f32,
 }
+
+#[derive(Debug, Component)]
+#[storage(DenseVecStorage)]
+pub struct ObstacleData {
+    pub separation_weight: f32,
+    pub separation_radius: f32,
+}

@@ -1,4 +1,4 @@
-use crate::components::{BoidData, Position, Velocity};
+use crate::components::{BoidData, ObstacleData, Position, Velocity};
 use amethyst::{
     derive::SystemDesc,
     ecs::prelude::*,
@@ -16,12 +16,13 @@ pub struct BoidSystem;
 impl<'s> System<'s> for BoidSystem {
     type SystemData = (
         ReadStorage<'s, BoidData>,
+        ReadStorage<'s, ObstacleData>,
         ReadStorage<'s, Position>,
         WriteStorage<'s, Velocity>,
         Entities<'s>,
     );
 
-    fn run(&mut self, (boid_datas, positions, mut velocities, entities): Self::SystemData) {
+    fn run(&mut self, (boid_datas, _, positions, mut velocities, entities): Self::SystemData) {
         // List of boid position and velocities used for determining new velocities
         let all_boids = (&boid_datas, &positions, &velocities, &entities)
             .join()

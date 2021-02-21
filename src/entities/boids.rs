@@ -1,5 +1,5 @@
 use crate::{
-    components::{BoidData, Position, Velocity},
+    components::{BoidData, ObstacleData, Position, Velocity},
     resources::{SpriteCache, SpriteKey},
 };
 use amethyst::{
@@ -8,7 +8,7 @@ use amethyst::{
     prelude::*,
     renderer::{SpriteRender, Transparent},
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use nalgebra::Vector2;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -43,6 +43,30 @@ pub fn fill_boid<'s>(
             alignment_radius: 150.,
             cohesion_radius: 150.,
             max_speed: MAX_VEL,
+        })
+        .build())
+}
+
+pub fn new_obstacle(world: &mut World, start_pos: Vector2<f32>) -> Result<Entity> {
+    let obstacle_handle = {
+        let sprite_cache = world
+            .try_fetch::<SpriteCache>()
+            .ok_or_else(|| anyhow!("Failed to fetch the sprite cache while crating player."))?;
+        sprite_cache.fetch(SpriteKey::Obstacle)?.clone()
+    };
+
+    Ok(world
+        .create_entity()
+        .with(SpriteRender {
+            sprite_sheet: obstacle_handle,
+            sprite_number: 0,
+        })
+        .with(Position(start_pos))
+        .with(Transform::default())
+        .with(Transparent)
+        .with(ObstacleData {
+            separation_weight: 0.2,
+            separation_radius: 200.,
         })
         .build())
 }

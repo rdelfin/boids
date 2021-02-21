@@ -6,6 +6,7 @@ use amethyst::{
     renderer::Camera,
     window::ScreenDimensions,
 };
+use anyhow::Result;
 use nalgebra::{Vector2, Vector3};
 
 use log::info;
@@ -29,6 +30,9 @@ impl SimpleState for MyState {
 
         // Load our sprites and display them
         load_sprites(world);
+
+        // Load in boundaries and other world elements
+        load_world(world).unwrap();
     }
 
     fn handle_event(
@@ -74,5 +78,23 @@ fn init_camera(world: &mut World, dimensions: &ScreenDimensions) {
 fn load_sprites(world: &mut World) {
     let mut sprite_cache = resources::SpriteCache::new();
     sprite_cache.load(resources::SpriteKey::Boid, world);
+    sprite_cache.load(resources::SpriteKey::Obstacle, world);
     world.insert(sprite_cache);
+}
+
+fn load_world(world: &mut World) -> Result<()> {
+    let num_obstacles_x = 1770 / 120;
+    let num_obstacles_y = 1000 / 120;
+
+    for i in 0..num_obstacles_x {
+        entities::boids::new_obstacle(world, Vector2::new((i * 120 - 835) as f32, -430.))?;
+        entities::boids::new_obstacle(world, Vector2::new((i * 120 - 835) as f32, 430.))?;
+    }
+
+    for i in 0..num_obstacles_y {
+        entities::boids::new_obstacle(world, Vector2::new(-815., (i * 120 - 450) as f32))?;
+        entities::boids::new_obstacle(world, Vector2::new(815., (i * 120 - 450) as f32))?;
+    }
+
+    Ok(())
 }
