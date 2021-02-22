@@ -24,7 +24,10 @@ impl<'s> System<'s> for BoidSystem {
         Entities<'s>,
     );
 
-    fn run(&mut self, (boid_datas, _, positions, mut velocities, entities): Self::SystemData) {
+    fn run(
+        &mut self,
+        (boid_datas, obstacle_datas, positions, mut velocities, entities): Self::SystemData,
+    ) {
         // List of boid position and velocities used for determining new velocities
         let all_boids = (&boid_datas, &positions, &velocities, &entities)
             .join()
@@ -42,7 +45,7 @@ impl<'s> System<'s> for BoidSystem {
                         position.0,
                         velocity.0,
                         &self.neighbour_boids(
-                            entity,
+                            Some(entity),
                             position.0,
                             boid_data.separation_radius,
                             &all_boids,
@@ -61,7 +64,7 @@ impl<'s> System<'s> for BoidSystem {
                         position.0,
                         velocity.0,
                         &self.neighbour_boids(
-                            entity,
+                            Some(entity),
                             position.0,
                             boid_data.alignment_radius,
                             &all_boids,
@@ -80,7 +83,7 @@ impl<'s> System<'s> for BoidSystem {
                         position.0,
                         velocity.0,
                         &self.neighbour_boids(
-                            entity,
+                            Some(entity),
                             position.0,
                             boid_data.cohesion_radius,
                             &all_boids,
@@ -94,15 +97,26 @@ impl<'s> System<'s> for BoidSystem {
             .map(|(boid_data, position, velocity, entity)| (entity, self.noise(boid_data)))
             .collect::<Vec<_>>();
 
-        izip!(separation_map, alignment_map, cohesion_map, noise_map).for_each(
-            |((entity, v_sep), (_, v_align), (_, v_coh), (_, v_noise))| {
+        let obstacle_map = self.calculate_obstacles(&all_boids, &obstacle_datas, &positions);
+
+        izip!(
+            separation_map,
+            alignment_map,
+            cohesion_map,
+            noise_map,
+            obstacle_map
+        )
+        .for_each(
+            |((entity, v_sep), (_, v_align), (_, v_coh), (_, v_noise), (_, v_obstacle))| {
                 let mut write_vel = velocities.get_mut(entity).unwrap();
                 let boid_data = boid_datas.get(entity).unwrap();
 
                 let weighted_vec = boid_data.separation_weight * v_sep
                     + boid_data.alignment_weight * v_align
                     + boid_data.cohesion_weight * v_coh
-                    + boid_data.noise_weight * v_noise;
+                    + boid_data.noise_weight * v_noise
+                    // Weight is already incorporated in the obstacle
+                    + v_obstacle;
                 if !weighted_vec.x.is_nan()
                     && !weighted_vec.y.is_nan()
                     && weighted_vec.norm() != 0.0
@@ -131,17 +145,24 @@ impl BoidSystem {
 
     fn neighbour_boids(
         &self,
-        entity: Entity,
+        entity: Option<Entity>,
         position: Vector2<f32>,
         radius: f32,
         all_boids: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
-    ) -> Vec<(Vector2<f32>, Vector2<f32>)> {
-        all_boids
-            .iter()
-            .filter(|(e, _, _)| entity != *e)
-            .filter(|(_, p, _)| (position - p).norm() < radius)
-            .map(|(_, p, v)| (*p, *v))
-            .collect()
+    ) -> Vec<(Entity, Vector2<f32>, Vector2<f32>)> {
+        match entity {
+            Some(entity) => all_boids
+                .iter()
+                .filter(|(e, _, _)| entity != *e)
+                .filter(|(_, p, _)| (position - p).norm() < radius)
+                .cloned()
+                .collect(),
+            None => all_boids
+                .iter()
+                .filter(|(_, p, _)| (position - p).norm() < radius)
+                .cloned()
+                .collect(),
+        }
     }
 
     fn separation(
@@ -149,7 +170,7 @@ impl BoidSystem {
         _boid_data: &BoidData,
         position: Vector2<f32>,
         _velocity: Vector2<f32>,
-        neighbours: &Vec<(Vector2<f32>, Vector2<f32>)>,
+        neighbours: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
     ) -> Vector2<f32> {
         if neighbours.len() == 0 {
             return Vector2::new(0.0, 0.0);
@@ -157,7 +178,7 @@ impl BoidSystem {
 
         let avg_position = neighbours
             .iter()
-            .map(|(_, p)| position - p)
+            .map(|(_, _, p)| position - p)
             .fold(Vector2::new(0., 0.), |prev, pos| prev + pos)
             / (neighbours.len() as f32);
         position - avg_position
@@ -168,7 +189,7 @@ impl BoidSystem {
         _boid_data: &BoidData,
         _position: Vector2<f32>,
         velocity: Vector2<f32>,
-        neighbours: &Vec<(Vector2<f32>, Vector2<f32>)>,
+        neighbours: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
     ) -> Vector2<f32> {
         if neighbours.len() == 0 {
             return Vector2::new(0.0, 0.0);
@@ -176,7 +197,7 @@ impl BoidSystem {
 
         let avg_direction = neighbours
             .iter()
-            .fold(Vector2::new(0.0, 0.0), |prev, (_, curr)| prev + curr)
+            .fold(Vector2::new(0.0, 0.0), |prev, (_, _, curr)| prev + curr)
             / neighbours.len() as f32;
         avg_direction - velocity
     }
@@ -186,7 +207,7 @@ impl BoidSystem {
         _boid_data: &BoidData,
         position: Vector2<f32>,
         _velocity: Vector2<f32>,
-        neighbours: &Vec<(Vector2<f32>, Vector2<f32>)>,
+        neighbours: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
     ) -> Vector2<f32> {
         if neighbours.len() == 0 {
             return Vector2::new(0.0, 0.0);
@@ -194,8 +215,37 @@ impl BoidSystem {
 
         let avg_position = neighbours
             .iter()
-            .fold(Vector2::new(0.0, 0.0), |prev, (pos, _)| prev + pos)
+            .fold(Vector2::new(0.0, 0.0), |prev, (_, pos, _)| prev + pos)
             / (neighbours.len() as f32);
         avg_position - position
+    }
+
+    fn calculate_obstacles(
+        &self,
+        all_boids: &Vec<(Entity, Vector2<f32>, Vector2<f32>)>,
+        obstacle_datas: &ReadStorage<ObstacleData>,
+        positions: &ReadStorage<Position>,
+    ) -> Vec<(Entity, Vector2<f32>)> {
+        // Construct returned struct
+        let mut avoidance_vecs = all_boids
+            .iter()
+            .map(|(entity, _, _)| (*entity, Vector2::new(0., 0.)))
+            .collect::<Vec<_>>();
+        let avoidance_map = all_boids
+            .iter()
+            .enumerate()
+            .map(|(i, (entity, _, _))| (entity, i))
+            .collect::<HashMap<_, _>>();
+
+        for (obstacle_data, position) in (obstacle_datas, positions).join() {
+            let neighbours =
+                self.neighbour_boids(None, position.0, obstacle_data.separation_radius, all_boids);
+            for (boid_entity, boid_position, _) in neighbours {
+                avoidance_vecs[avoidance_map[&boid_entity]].1 +=
+                    (boid_position - position.0) * obstacle_data.separation_weight;
+            }
+        }
+
+        avoidance_vecs
     }
 }
